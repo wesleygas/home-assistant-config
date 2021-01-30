@@ -1,0 +1,130 @@
+esphome:
+  name: 82_b
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "82 B Fallback Hotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+deep_sleep:
+  run_duration: 7s
+  sleep_duration: 7min
+  id: deep_sleep_1
+
+i2c:
+
+mqtt:
+  broker: 192.168.0.34
+  username: sensors
+  password: sensorsiot
+  birth_message:
+  will_message:
+  on_message:
+    - topic: coqueiro/ota_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.prevent: deep_sleep_1
+        - logger.log: "Deep desligado"
+    - topic: coqueiro/ota_mode
+      payload: 'OFF'
+      then:
+        - logger.log: "Deepando"
+        - deep_sleep.enter: deep_sleep_1
+    - topic: 82_b/light/fastled_ws2811_light/command
+      then:
+        - logger.log: "Sending ACK"
+        - mqtt.publish:
+            topic: 82_b/light/fastled_ws2811_light/ack
+            payload: "ack"
+
+# power_supply:
+#   - id: 'led_power_supply'
+#     pin: D8
+#     keep_on_time: 0s
+
+output:
+  - platform: gpio
+    pin: D7
+    id: sensor_psu
+
+light:
+  - platform: fastled_clockless
+    chipset: WS2811
+    pin: D6
+    default_transition_length: 0s
+    num_leds: 2
+    rgb_order: RGB
+    name: "FastLED WS2811 Light"
+    retain: True
+    # power_supply: 'led_power_supply'
+    
+ads1115:
+  - address: 0x48
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+# api:
+#   password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd
+
+sensor:
+  - platform: bmp085
+    temperature:
+      name: "BMP Temperature"
+    pressure:
+      name: "BMP Pressure"
+    update_interval: 30s
+    
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    gain: 6.144
+    name: "ADS1115 Channel A0-GND"
+    update_interval: 10s
+    
+  - platform: ads1115
+    multiplexer: 'A1_GND'
+    gain: 4.096
+    name: "NTC10K_A1-GND"
+    update_interval: never
+    id: "NTC10K"
+    
+  - platform: ads1115
+    multiplexer: 'A2_GND'
+    gain: 4.096
+    accuracy_decimals: 5
+    name: "SOIL_A2-GND"
+    update_interval: never
+    id: "SOIL_ADS"
+    
+  - platform: template
+    id: unused_sensor
+    update_interval: 10s
+    internal: true
+    lambda: |-
+      id(sensor_psu).turn_on();
+      delay(500);
+      id(NTC10K).update();
+      id(SOIL_ADS).update();
+      id(sensor_psu).turn_off();
+      return NAN;    
+
+  - platform: bh1750
+    name: "BH1750 Illuminance"
+    address: 0x23
+    measurement_time: 69
+    update_interval: 10s
+    
+    

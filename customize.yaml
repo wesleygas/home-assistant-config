@@ -1,0 +1,35 @@
+sensor.euro:
+  icon: mdi:finance
+sensor.usd_2:
+  icon: mdi:finance
+switch.c3_speaker_2_1:
+  entity_id: c3_speaker_power
+  friendly_name: Smart Speaker
+switch.c3_speaker_2_2:
+  entity_id: c3_bluetooth_power
+  friendly_name: Smart Speaker Bluetooth
+binary_sensor.c3_speaker_2_3:
+  entity_id: c3_bluetooth_connected
+  friendly_name: Smart Speaker Bluetooth Status
+sensor.plantstation_3_1:
+  friendly_name: Plant Soil Humidity
+  icon: mdi:water
+  unit_of_measurement: u
+sensor.plantstation_3_2:
+  friendly_name: Plant Light Level
+sensor.plantstation_3_3:
+  friendly_name: Plant Soil Temperature
+sensor.plantstation_3_4:
+  friendly_name: Plant Batery Voltage
+sensor.weathersala_4_1:
+  friendly_name: Living Room Temperature
+sensor.weathersala_4_2:
+  friendly_name: Living Room Pressure
+  unit_of_measurement: hPa
+sensor.weathersala_4_3:
+  friendly_name: Living Room Humidity
+sensor.bedroom_temperature:
+  entity_id: bedroom_temp
+sensor.bedroom_pressure:
+  entity_id: bedroom_press
+

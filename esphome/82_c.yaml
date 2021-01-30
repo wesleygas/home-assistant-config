@@ -1,0 +1,44 @@
+esphome:
+  name: 82_c
+  platform: ESP8266
+  board: d1_mini_lite
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "82 C Fallback Hotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd
+  
+spi:
+  clk_pin: TX
+  miso_pin: D1
+  mosi_pin: D2
+
+pn532:
+  cs_pin: D3
+  update_interval: 2s
+
+  # What happens when a tag is read
+  on_tag:
+    then:
+    - homeassistant.event:
+        event: esphome.tag_scanned
+        data:
+          tag_id: !lambda 'return x;'
+    - logger.log: "Just read tag!"

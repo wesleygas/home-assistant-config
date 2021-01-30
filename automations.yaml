@@ -1,0 +1,207 @@
+- id: '1590362321509'
+  alias: A voz do coqueiro
+  description: O coqueiro pede água quando estiver acima de X
+  trigger:
+  - above: '410'
+    entity_id: sensor.coqueiro
+    platform: numeric_state
+  condition:
+  - condition: state
+    entity_id: device_tracker.d0_04_01_93_8e_83
+    state: Home
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: device_tracker.sm_g9600
+      state: Home
+  action:
+  - data:
+      entity_id: media_player.mini_livroom
+      language: pt-br
+      message: O coqueiro parece estar sem água... Regue-o o quanto antes
+    service: tts.google_translate_say
+  mode: single
+- id: '1590957729691'
+  alias: turn on WLED at sunset
+  description: ''
+  trigger:
+  - event: sunset
+    offset: -00:10:00
+    platform: sun
+  condition:
+  - condition: zone
+    entity_id: device_tracker.sm_g9600
+    zone: zone.home
+  - condition: or
+    conditions:
+    - condition: zone
+      entity_id: person.autogas
+      zone: zone.home
+  action:
+  - type: turn_on
+    device_id: 30030074cce4c782b40434c81a991933
+    entity_id: light.led_cozinha
+    domain: light
+    brightness_pct: 70
+  mode: single
+- id: wled_speed
+  alias: wled_speed
+  trigger:
+  - entity_id: input_number.ledspeed
+    platform: state
+  condition: []
+  action:
+  - data_template:
+      topic: wled/all/api
+      payload: SX={{ states('input_number.ledspeed') | int }}
+    service: mqtt.publish
+- id: wled_intensity
+  alias: wled_intensity
+  trigger:
+  - entity_id: input_number.ledintensity
+    platform: state
+  condition: []
+  action:
+  - data_template:
+      topic: wled/all/api
+      payload: IX={{ states('input_number.ledintensity') | int }}
+    service: mqtt.publish
+- id: wled_palette
+  alias: WLED Palette
+  trigger:
+  - platform: state
+    entity_id: input_select.wled_palette_list
+  condition: []
+  action:
+  - service: mqtt.publish
+    data_template:
+      topic: wled/all/api
+      payload: '{{ states(''input_select.wled_palette_list'') }}'
+- id: wled_presets
+  alias: WLED Presets
+  trigger:
+  - platform: state
+    entity_id: input_select.wled_presets
+  condition: []
+  action:
+  - service: mqtt.publish
+    data_template:
+      topic: wled/all/api
+      payload: '{{ states(''input_select.wled_presets'') }}'
+- id: '1592708817758'
+  alias: Update wled speed and intensity
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: light.wled
+  condition: []
+  action:
+  - service: input_number.set_value
+    data_template:
+      entity_id: input_number.ledspeed
+      value: '{{ state_attr(''light.wled'', ''speed'') }}'
+  - service: input_number.set_value
+    data_template:
+      entity_id: input_number.ledintensity
+      value: '{{ state_attr(''light.wled'', ''intensity'') }}'
+- id: '1594039825502'
+  alias: StretchyStrech
+  description: ''
+  trigger:
+  - at: '10:00:00'
+    platform: time
+  condition: []
+  action:
+  - data:
+      data:
+        actions:
+        - action: SNOOZE_STRETCH
+          title: Snooze
+      message: Time to Stretch
+      title: Hi, Wesley
+    service: notify.mobile_app_moto_z2_play
+- id: '1609812764465'
+  alias: Turn Off Coqueiro Before sunrise
+  description: ''
+  trigger:
+  - platform: sun
+    event: sunrise
+    offset: -05:00
+  condition: []
+  action:
+  - service: light.turn_off
+    data: {}
+    entity_id: light.luz_do_coquero
+  mode: single
+- id: '1609812902815'
+  alias: Turn on coqueiro light after sunset
+  description: ''
+  trigger:
+  - platform: sun
+    event: sunset
+  condition:
+  - condition: numeric_state
+    entity_id: sensor.ads1115_channel_a0_gnd_2
+    above: '3.7'
+  action:
+  - service: light.turn_on
+    data:
+      brightness_pct: 60
+    entity_id: light.luz_do_coquero
+  mode: single
+- id: '1609865148224'
+  alias: Coqueiro OTA mode
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: input_select.coqueiro_ota
+  condition: []
+  action:
+  - service: mqtt.publish
+    data:
+      topic: coqueiro/ota_mode
+      payload_template: '{{ states("input_select.coqueiro_ota") }}'
+      retain: true
+  mode: single
+- id: '1609938739225'
+  alias: Zone Notification
+  description: ''
+  use_blueprint:
+    path: homeassistant/notify_leaving_zone.yaml
+    input:
+      person_entity: person.autogas
+      zone_entity: zone.home
+      notify_device: 594ef04e1a504d8e9e647636a07dd931
+- id: '1610239440491'
+  alias: Coqueiro ACK
+  description: ''
+  trigger:
+  - platform: mqtt
+    topic: 82_b/light/fastled_ws2811_light/ack
+    payload: ack
+  condition:
+  - condition: state
+    entity_id: input_boolean.coqueiro_needs_ack
+    state: 'on'
+  action:
+  - service: mqtt.publish
+    data:
+      topic: 82_b/light/fastled_ws2811_light/command
+      payload: ''
+      retain: true
+  - service: input_boolean.turn_off
+    data: {}
+    entity_id: input_boolean.coqueiro_needs_ack
+  mode: single
+- id: '1610240305588'
+  alias: Coquero ask ack
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: light.luz_do_coquero
+  condition: []
+  action:
+  - service: input_boolean.turn_on
+    data: {}
+    entity_id: input_boolean.coqueiro_needs_ack
+  mode: single

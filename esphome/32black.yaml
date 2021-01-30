@@ -1,0 +1,62 @@
+esphome:
+  name: 32black
+  platform: ESP32
+  board: nodemcu-32s
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "32Black Fallback Hotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd
+
+remote_receiver:
+  pin: 
+    number: GPIO32
+    inverted: False
+  dump: rc_switch
+  tolerance: 25%
+  filter: 500us
+  idle: 10ms
+  buffer_size: 2kb
+  
+switch:
+  - platform: gpio
+    name: "StatusLED"
+    pin: GPIO27
+    id: "StatusLED"
+  
+binary_sensor:
+  - platform: remote_receiver
+    filters:
+      delayed_off: 50ms
+    id: "OnRemote"
+    rc_switch_raw:
+      code: "100001010010100110100100"
+    on_press:
+      then:
+        - switch.turn_on: "StatusLED"
+  - platform: remote_receiver
+    id: "OffRemote"
+    filters:
+      delayed_off: 50ms
+    rc_switch_raw:
+      code: "100001010010100110100001"
+    on_press:
+      then:
+        - switch.turn_off: "StatusLED"

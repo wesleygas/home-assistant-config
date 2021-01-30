@@ -1,0 +1,70 @@
+esphome:
+  name: 82_a
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "82 A Fallback Hotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+remote_receiver:
+  pin: 
+    number: D5
+    inverted: True
+  dump:
+    - nec
+    - rc_switch
+i2c:
+  sda: D2
+  scl: D1
+  scan: True
+
+sensor:
+  - platform: bmp280
+    address: 0x77
+    
+binary_sensor:
+  - platform: remote_receiver
+    id: "OnOffRemote"
+    filters:
+      delayed_off: 200ms
+    rc_switch_raw:
+      code: '100001010010100110100001'
+      protocol: 6
+    on_multi_click:
+    - timing:
+        - ON for at most 1s
+        - OFF for at most 0.3s
+        - ON for at most 1s
+        - OFF for at least 0.2s
+      then:
+        - logger.log: "Double-Clicked"
+    - timing:
+        - ON for at most 1s
+        - OFF for at least 0.5s
+      then:
+        - logger.log: "Single-Clicked"
+
+switch:
+  - platform: gpio
+    name: "StatusLED"
+    pin: D2
+    id: "StatusLED"
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd

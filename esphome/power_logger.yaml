@@ -1,0 +1,111 @@
+esphome:
+  name: power_logger
+  platform: ESP8266
+  board: d1_mini
+  includes:
+    - power_logger.h
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "power_loggerFBHotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+api:
+  password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd
+  
+i2c:  
+
+font:
+  - file: "./fonts/roboto/Roboto-Regular.ttf"
+    id: rbt_r
+    size: 12
+  - file: "./fonts/roboto/Roboto-Bold.ttf"
+    id: rbt_rm
+    size: 10
+
+sensor:
+  - platform: ina219
+    address: 0x40
+    shunt_resistance: 0.1 ohm
+    id: "ina_s"
+    current:
+      id: "plg_cr"
+      name: "Plogger Current"
+      accuracy_decimals: 5
+      filters:
+        - offset: 0.00010
+        - throttle: 800ms
+    power:
+      id: "plg_pw"
+      name: "Plogger Power"
+      accuracy_decimals: 5
+      filters:
+        - throttle: 800ms
+    bus_voltage:
+      id: "plg_v"
+      name: "Plogger Bus Voltage"
+      accuracy_decimals: 5
+      filters:
+        - throttle: 800ms
+    max_voltage: 32.0V
+    max_current: 3.2A
+    update_interval: never
+    
+  - platform: custom
+    lambda: |-
+      auto my_sensor = new powerLogger(40,id(plg_cr),id(plg_v),id(ina_s));
+      App.register_component(my_sensor);
+      return {my_sensor->capacity,my_sensor->energy};
+    sensors:
+      - name: "Plogger Net Charge"
+        id: "plg_mah"
+        unit_of_measurement: mAh
+        accuracy_decimals: 5
+        filters:
+        - throttle: 800ms
+      - name: "Plogger Net Energy"
+        id: "plg_mwh"
+        unit_of_measurement: mWh
+        accuracy_decimals: 5
+        filters:
+        - throttle: 800ms
+      
+    
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    reset_pin: D0
+    address: 0x3C
+    lambda: |-
+      it.print(0, 0, id(rbt_r), "Plogger!"); 
+      it.printf(0, 20, id(rbt_rm), "%.3fV", id(plg_v).state); 
+      it.printf(0, 30, id(rbt_rm), "%.1fmA", id(plg_cr).state*1000.0); 
+      it.printf(60, 30, id(rbt_rm), "%.2fmAh", id(plg_mah).raw_state); 
+      it.printf(0, 40, id(rbt_rm), "%.4fW", id(plg_pw).state); 
+      it.printf(60, 40, id(rbt_rm), "%.2fmWh", id(plg_mwh).raw_state); 
+
+
+# mqtt:
+#   broker: 192.168.0.34
+#   username: sensors
+#   password: sensorsiot
+#   discovery: false
+  
+
+# Enable logging
+logger:
+  level: WARN
+  esp8266_store_log_strings_in_flash: False
+
+

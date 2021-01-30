@@ -1,0 +1,14 @@
+secrets.yaml
+known_devices.yaml
+service_account.json
+mysensors.json
+!.gitignore
+
+cache
+custom_components
+glances
+rtl4332mqtt
+themes
+tts
+www
+/.*

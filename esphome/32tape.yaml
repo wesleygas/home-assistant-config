@@ -1,0 +1,83 @@
+esphome:
+  name: 32tape
+  platform: ESP32
+  board: nodemcu-32s
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: True
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "32Tape Fallback Hotspot"
+    password: !secret fallback_pwd
+
+captive_portal:
+
+# Enable logging
+logger:
+
+i2c:
+  sda: 21
+  scl: 22
+  scan: True
+  id: "bus_a"
+
+# Enable Home Assistant API
+api:
+  password: !secret esphome_haapi_pwd
+
+ota:
+  password: !secret esphome_ota_pwd
+
+remote_receiver:
+  pin: 
+    number: GPIO32
+    inverted: True
+  dump: all
+  # on_nec:
+  #   then:
+  #     remote_transmitter.transmit_nec:
+  #       address: !lambda |-
+  #         ESP_LOGD("NEC", "Transmitting address 0x%X", x.address);
+  #         return x.address;
+  #       command: !lambda |-
+  #         ESP_LOGD("NEC", "Transmitting command 0x%X", x.command);
+  #         return x.command;
+
+# sensor:
+#   - platform: bme280
+#     temperature: 
+#       name: "BME Temperature"
+#       unit_of_measurement: "°C"
+#       accuracy_decimals: 3
+#     pressure:
+#       name: "BME Pressure"
+#       accuracy_decimals: 5
+#     humidity:
+#       name: "BME Humidity"
+#       accuracy_decimals: 1
+      
+
+switch:
+  - platform: gpio
+    name: "StatusLED"
+    pin: GPIO27
+    id: "StatusLED"
+  
+binary_sensor:
+  - platform: remote_receiver
+    id: "OnOffRemote"
+    nec:
+      address: 0x00FF
+      command: 0xB24D
+    on_press:
+      then:
+        - switch.toggle: "StatusLED"
+          
+        
+# remote_transmitter:
+#   pin: GPIO26
+#   carrier_duty_percent: 100%
+
