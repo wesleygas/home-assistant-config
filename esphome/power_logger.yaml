@@ -9,21 +9,17 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_pwd
   fast_connect: True
-
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "power_loggerFBHotspot"
-    password: !secret fallback_pwd
-
-captive_portal:
+  id: 'wifi_obj'
 
 api:
+  id: ha_api
   password: !secret esphome_haapi_pwd
 
 ota:
   password: !secret esphome_ota_pwd
   
 i2c:  
+  frequency: 800kHz
 
 font:
   - file: "./fonts/roboto/Roboto-Regular.ttf"
@@ -59,13 +55,14 @@ sensor:
         - throttle: 800ms
     max_voltage: 32.0V
     max_current: 3.2A
-    update_interval: never
+    #update_interval: never
     
   - platform: custom
+    id: customsens
     lambda: |-
-      auto my_sensor = new powerLogger(40,id(plg_cr),id(plg_v),id(ina_s));
+      auto my_sensor = new powerLogger(100,id(plg_cr),id(plg_v),id(ina_s));
       App.register_component(my_sensor);
-      return {my_sensor->capacity,my_sensor->energy};
+      return {my_sensor->capacity,my_sensor->energy,my_sensor->sdLog};
     sensors:
       - name: "Plogger Net Charge"
         id: "plg_mah"
@@ -79,8 +76,20 @@ sensor:
         accuracy_decimals: 5
         filters:
         - throttle: 800ms
+      - id: "sdLog"
       
+image:
+  - file: "wifi_icon.png"
+    id: wifi_icon
+    resize: 16x16
     
+  - file: "home-assistant.png"
+    id: ha_icon
+    resize: 16x16
+    
+  - file: "sd.png"
+    id: sd_icon
+    resize: 16x16
 
 display:
   - platform: ssd1306_i2c
@@ -94,18 +103,27 @@ display:
       it.printf(60, 30, id(rbt_rm), "%.2fmAh", id(plg_mah).raw_state); 
       it.printf(0, 40, id(rbt_rm), "%.4fW", id(plg_pw).state); 
       it.printf(60, 40, id(rbt_rm), "%.2fmWh", id(plg_mwh).raw_state); 
+      if(id(wifi_obj).is_connected()){
+        it.image(60, 0, id(wifi_icon), COLOR_ON, COLOR_OFF);
+      }else{
+        it.filled_rectangle(60, 0, 16, 16, COLOR_OFF);
+      }
+      if(id(ha_api).is_connected()){
+        it.image(80, 0, id(ha_icon), COLOR_OFF, COLOR_ON);
+      }else{
+        it.filled_rectangle(80, 0, 16, 16, COLOR_OFF);
+      }
+      if(id(sdLog).state){
+        it.image(100, 0, id(sd_icon), COLOR_ON, COLOR_OFF);
+      }else{
+        it.filled_rectangle(100, 0, 16, 16, COLOR_OFF);
+      }
+      
 
-
-# mqtt:
-#   broker: 192.168.0.34
-#   username: sensors
-#   password: sensorsiot
-#   discovery: false
-  
 
 # Enable logging
 logger:
-  level: WARN
+  level: DEBUG
   esp8266_store_log_strings_in_flash: False
 
 
