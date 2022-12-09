@@ -1,26 +1,3 @@
-- id: '1590362321509'
-  alias: A voz do coqueiro
-  description: O coqueiro pede água quando estiver acima de X
-  trigger:
-  - above: '410'
-    entity_id: sensor.coqueiro
-    platform: numeric_state
-  condition:
-  - condition: state
-    entity_id: device_tracker.d0_04_01_93_8e_83
-    state: Home
-  - condition: or
-    conditions:
-    - condition: state
-      entity_id: device_tracker.sm_g9600
-      state: Home
-  action:
-  - data:
-      entity_id: media_player.mini_livroom
-      language: pt-br
-      message: O coqueiro parece estar sem água... Regue-o o quanto antes
-    service: tts.google_translate_say
-  mode: single
 - id: '1590957729691'
   alias: turn on WLED at sunset
   description: ''
@@ -40,54 +17,10 @@
   action:
   - type: turn_on
     device_id: 30030074cce4c782b40434c81a991933
-    entity_id: light.led_cozinha
+    entity_id: light.wled
     domain: light
     brightness_pct: 70
   mode: single
-- id: wled_speed
-  alias: wled_speed
-  trigger:
-  - entity_id: input_number.ledspeed
-    platform: state
-  condition: []
-  action:
-  - data_template:
-      topic: wled/all/api
-      payload: SX={{ states('input_number.ledspeed') | int }}
-    service: mqtt.publish
-- id: wled_intensity
-  alias: wled_intensity
-  trigger:
-  - entity_id: input_number.ledintensity
-    platform: state
-  condition: []
-  action:
-  - data_template:
-      topic: wled/all/api
-      payload: IX={{ states('input_number.ledintensity') | int }}
-    service: mqtt.publish
-- id: wled_palette
-  alias: WLED Palette
-  trigger:
-  - platform: state
-    entity_id: input_select.wled_palette_list
-  condition: []
-  action:
-  - service: mqtt.publish
-    data_template:
-      topic: wled/all/api
-      payload: '{{ states(''input_select.wled_palette_list'') }}'
-- id: wled_presets
-  alias: WLED Presets
-  trigger:
-  - platform: state
-    entity_id: input_select.wled_presets
-  condition: []
-  action:
-  - service: mqtt.publish
-    data_template:
-      topic: wled/all/api
-      payload: '{{ states(''input_select.wled_presets'') }}'
 - id: '1592708817758'
   alias: Update wled speed and intensity
   description: ''
@@ -112,21 +45,18 @@
     platform: time
   condition: []
   action:
-  - data:
-      data:
-        actions:
-        - action: SNOOZE_STRETCH
-          title: Snooze
-      message: Time to Stretch
-      title: Hi, Wesley
-    service: notify.mobile_app_moto_z2_play
+  - service: notify.mobile_app_sm_g9600
+    data:
+      message: It is time to strech that boodie
+      title: Hey!
+  mode: single
 - id: '1609812764465'
   alias: Turn Off Coqueiro Before sunrise
   description: ''
   trigger:
   - platform: sun
     event: sunrise
-    offset: -05:00
+    offset: -04:00
   condition: []
   action:
   - service: light.turn_off
@@ -146,7 +76,7 @@
   action:
   - service: light.turn_on
     data:
-      brightness_pct: 60
+      brightness_pct: 85
     entity_id: light.luz_do_coquero
   mode: single
 - id: '1609865148224'
@@ -163,15 +93,6 @@
       payload_template: '{{ states("input_select.coqueiro_ota") }}'
       retain: true
   mode: single
-- id: '1609938739225'
-  alias: Zone Notification
-  description: ''
-  use_blueprint:
-    path: homeassistant/notify_leaving_zone.yaml
-    input:
-      person_entity: person.autogas
-      zone_entity: zone.home
-      notify_device: 594ef04e1a504d8e9e647636a07dd931
 - id: '1610239440491'
   alias: Coqueiro ACK
   description: ''
@@ -204,4 +125,346 @@
   - service: input_boolean.turn_on
     data: {}
     entity_id: input_boolean.coqueiro_needs_ack
+  mode: single
+- id: '1612564606466'
+  alias: Set Coqueiro Soil Sensing
+  description: sets the soil sensors update via the helper toggle
+  trigger:
+  - platform: state
+    entity_id: input_boolean.probecoqueirosoil
+  condition: []
+  action:
+  - service: mqtt.publish
+    data:
+      topic: coqueiro/update_soil
+      payload_template: '{{ states("input_boolean.probecoqueirosoil") }}'
+      retain: true
+  mode: single
+- id: '1618092235064'
+  alias: Bleed coqueiro battery
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.ads1115_channel_a0_gnd_2
+    above: '4.15'
+  condition:
+  - condition: numeric_state
+    entity_id: sensor.bh1750_illuminance_2
+    above: '500.0'
+  action:
+  - service: light.turn_on
+    data:
+      brightness_pct: 70
+      color_name: white
+    target:
+      entity_id: light.luz_do_coquero
+  mode: single
+- id: '1623973588495'
+  alias: Sync SongEntityPicture
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: media_player.spotify_wesley_gabriel
+    attribute: entity_picture
+  condition:
+  - condition: state
+    entity_id: media_player.spotify_wesley_gabriel
+    state: playing
+  action:
+  - service: color_extractor.turn_on
+    data:
+      color_extract_url: "https://wgas.duckdns.org{{ states.media_player.spotify_wesley_gabriel.attributes.entity_picture\n\
+        \    }}"
+      entity_id: light.luzinha_2
+      brightness_pct: 40
+  mode: single
+- id: '1624963949032'
+  alias: do speedtest
+  description: ''
+  trigger:
+  - platform: time_pattern
+    hours: '*'
+    minutes: '0'
+    seconds: '0'
+  condition:
+  - condition: numeric_state
+    entity_id: sensor.plex_hass_io
+    below: '1'
+  action:
+  - service: speedtestdotnet.speedtest
+  mode: single
+- id: '1625103572815'
+  alias: Adjust Smarplug TelePeriod
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: input_number.smartplug_teleperiod
+  condition:
+  - condition: device
+    type: is_on
+    device_id: 1fb61ad66f01425e9f7ada1dd3cd9889
+    entity_id: switch.smartplug_2
+    domain: switch
+  action:
+  - service: mqtt.publish
+    data:
+      topic: cmnd/tmt_plug_0CC236/TelePeriod
+      payload_template: '{{ states("input_number.smartplug_teleperiod") | int }}'
+  mode: single
+- id: '1628816942913'
+  alias: RF bridge MQTT-Eventbus
+  description: Gets RF events from mqtt and bridges them into the HA bus
+  trigger:
+  - platform: mqtt
+    topic: event/multi-bridge/rf
+    id: mqtt_message
+  condition: []
+  action:
+  - event: rf.click
+    event_data:
+      payload: '{{ trigger.payload  }}'
+  mode: single
+- id: '1628907553819'
+  alias: MQTT tag bridge
+  description: ''
+  trigger:
+  - platform: mqtt
+    topic: event/multi-bridge/tag
+  condition: []
+  action:
+  - event: tag_scanned
+    event_data:
+      tag_id: '{{ trigger.payload }}'
+  mode: single
+- id: '1628908080356'
+  alias: IR code bridge
+  description: ''
+  trigger:
+  - platform: mqtt
+    topic: event/multi-bridge/infrared
+  condition: []
+  action:
+  - event: infrared.received
+    event_data:
+      source: multi-bridge
+      code: '{{ trigger.payload }}'
+  - service: input_text.set_value
+    target:
+      entity_id: input_text.last_ir_code
+    data:
+      value: '{{ trigger.payload }}'
+  mode: single
+- id: '1628908329788'
+  alias: TVRemote Power toggle SSPeaker
+  description: ''
+  trigger:
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: FFB24D
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: E0E0A857
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: FFB24D
+  condition: []
+  action:
+  - service: switch.toggle
+    target:
+      entity_id: switch.speaker_power
+  mode: single
+- id: '1628908618395'
+  alias: 'TVRemote toggle speaker bluetooth '
+  description: ''
+  trigger:
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: FF2AD5
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: E0E028D7
+  condition: []
+  action:
+  - service: switch.toggle
+    target:
+      entity_id: switch.speaker_bluetooth
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - service: switch.turn_on
+    target:
+      entity_id: switch.volume_boost
+  mode: single
+- id: '1628908673190'
+  alias: TV Remote Sspeaker volumeBoost
+  description: ''
+  trigger:
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: FF6897
+  condition: []
+  action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.volume_boost
+  mode: single
+- id: '1629159426776'
+  alias: Turn  Off heater after on cycle
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: switch.heater
+    for: 0:{{ ((states('input_number.aquarium_heater_duty_cycle')|float / 100.0) *
+      (states('input_number.aquarium_heater_period')|int))|int }}:00
+    id: off_period_pwm
+    to: 'on'
+  condition: []
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: switch.heater
+  mode: single
+- id: '1629159632977'
+  alias: Turn on aquarium heater after off period
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: switch.heater
+    to: 'off'
+    for: 0:{{ (((100-states('input_number.aquarium_heater_duty_cycle')|float) / 100.0)*
+      (states('input_number.aquarium_heater_period')|int))|int }}:00
+    id: on_period_pwm
+  condition: []
+  action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.heater
+  mode: single
+- id: '1629849482215'
+  alias: TVRemote toggle Hyperion
+  description: Click do botão D
+  trigger:
+  - platform: event
+    event_type: infrared.received
+    event_data:
+      source: multi-bridge
+      code: E0E06897
+  condition: []
+  action:
+  - service: light.toggle
+    target:
+      entity_id: light.directspi
+    data:
+      brightness_pct: 58
+  mode: single
+- id: '1630798015870'
+  alias: Next Spotify Track
+  description: ''
+  trigger:
+  - platform: event
+    event_type: rf.click
+    event_data:
+      payload:
+        source: RF3
+        type: single
+  condition: []
+  action:
+  - service: media_player.media_next_track
+    target:
+      device_id: 09b8b0e1f95711ea86baa9ca53f6371d
+  mode: single
+- id: '1630798074509'
+  alias: Pause Spotify
+  description: ''
+  trigger:
+  - platform: event
+    event_type: rf.click
+    event_data:
+      payload:
+        source: RF2
+        type: single
+  condition: []
+  action:
+  - service: media_player.media_play_pause
+    target:
+      device_id: 09b8b0e1f95711ea86baa9ca53f6371d
+  mode: single
+- id: '1630798106495'
+  alias: Previous Spotify Track
+  description: ''
+  trigger:
+  - platform: event
+    event_type: rf.click
+    event_data:
+      payload:
+        source: RF1
+        type: single
+  condition: []
+  action:
+  - service: media_player.media_previous_track
+    target:
+      device_id: 09b8b0e1f95711ea86baa9ca53f6371d
+  mode: single
+- id: '1631619185090'
+  alias: Monthly Database backup reminder
+  description: ''
+  trigger:
+  - platform: time
+    at: '10:00:00'
+  - platform: time
+    at: '19:00:00'
+  condition:
+  - condition: template
+    value_template: '{{ now().day == 1 }}'
+  action:
+  - service: notify.mobile_app_sm_g9600
+    data:
+      message: Lembre-se de fazer o backup do seu DB!
+      title: Backup your data!
+  - service: notify.persistent_notification
+    data:
+      title: Backup your data!
+      message: Remember to backup your DB
+  - service: notify.hass_mail
+    data:
+      title: Backup your data
+      message: Remember to backup your DB
+  mode: single
+- id: '1634607236240'
+  alias: turn off wled armário at night
+  description: ''
+  trigger:
+  - platform: time
+    at: '23:30:00'
+  condition: []
+  action:
+  - service: light.turn_off
+    target:
+      device_id: 30030074cce4c782b40434c81a991933
+  mode: single
+- id: '1636323293485'
+  alias: Turn Off Coqueiro
+  description: ''
+  trigger:
+  - platform: time
+    at: input_datetime.coqueiro_turnoff_time
+  condition: []
+  action:
+  - service: light.turn_off
+    data: {}
+    entity_id: light.luz_do_coquero
   mode: single
